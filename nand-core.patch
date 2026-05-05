@@ -1,24 +1,25 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: patch <patch@example.com>
-Date: Tue, 5 May 2026 00:00:00 +0000
-Subject: [PATCH] feat(core): data model, persistence, net manager, connection validation, tests
+From: nand-assistant <noreply@example.com>
+Date: Tue, 05 May 2026 00:00:00 +0000
+Subject: [PATCH] feat(core): data model, persistence, net manager, connection
+ validation, tests
 
 ---
- .gitignore                                      | 6 ++++++
- package.json                                    | 33 +++++++++++++++++++++++++++
- tsconfig.json                                   | 38 ++++++++++++++++++++++++++++++++++
- jest.config.js                                  | 14 +++++++++++
- src/model/index.ts                              | 4 ++++
- src/model/ids.ts                                | 36 ++++++++++++++++++++++++++++++++++++
- src/model/types.ts                               | 186 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- src/model/schema.ts                              | 70 +++++++++++++++++++++++++++++++++++++
- src/sim/connectionValidation.ts                  | 88 ++++++++++++++++++++++++++++++++++++++++++++++++++
- src/sim/netManager.ts                            | 160 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- src/persistence/projectIO.ts                     | 72 +++++++++++++++++++++++++++++++++++++
- tests/sim/netManager.test.ts                     | 60 +++++++++++++++++++++++++++++++++
- tests/sim/connectionValidation.test.ts           | 48 +++++++++++++++++++++++++++++
- tests/model/schema.test.ts                       | 44 ++++++++++++++++++++++++++
- 15 files changed, 859 insertions(+)
+ .gitignore                                   | 6 ++++++
+ package.json                                 | 33 +++++++++++++++++++++++++++++++++
+ tsconfig.json                                | 38 +++++++++++++++++++++++++++++++++++++
+ jest.config.js                               | 14 ++++++++++
+ src/model/index.ts                           | 3 +++
+ src/model/ids.ts                              | 36 +++++++++++++++++++++++++++++++++
+ src/model/types.ts                             | 186 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ src/model/schema.ts                            | 70 ++++++++++++++++++++++++++
+ src/sim/connectionValidation.ts                | 88 +++++++++++++++++++++++++++++++++
+ src/sim/netManager.ts                          | 160 +++++++++++++++++++++++++++++++++++++++++++++++++
+ src/persistence/projectIO.ts                   | 72 ++++++++++++++++++++++++++
+ tests/sim/netManager.test.ts                   | 60 ++++++++++++++
+ tests/sim/connectionValidation.test.ts         | 48 +++++++++++
+ tests/model/schema.test.ts                     | 44 ++++++++++
+ 16 files changed, 858 insertions(+)
  create mode 100644 .gitignore
  create mode 100644 package.json
  create mode 100644 tsconfig.json
@@ -34,17 +35,24 @@ Subject: [PATCH] feat(core): data model, persistence, net manager, connection va
  create mode 100644 tests/sim/connectionValidation.test.ts
  create mode 100644 tests/model/schema.test.ts
 ---
-*** Begin Patch
-*** Add File: .gitignore
+diff --git a/.gitignore b/.gitignore
+new file mode 100644
+index 0000000..e69de29
+--- /dev/null
++++ b/.gitignore
+@@ -0,0 +1,6 @@
 +node_modules/
 +dist/
 +*.patch
 +coverage/
 +.env
 +
-*** End Patch
-*** Begin Patch
-*** Add File: package.json
+diff --git a/package.json b/package.json
+new file mode 100644
+index 0000000..e69de29
+--- /dev/null
++++ b/package.json
+@@ -0,0 +1,33 @@
 +{
 +  "name": "nandlogicstudio",
 +  "version": "0.1.0",
@@ -62,9 +70,13 @@ Subject: [PATCH] feat(core): data model, persistence, net manager, connection va
 +    "node": ">=16"
 +  }
 +}
-*** End Patch
-*** Begin Patch
-*** Add File: tsconfig.json
++
+diff --git a/tsconfig.json b/tsconfig.json
+new file mode 100644
+index 0000000..e69de29
+--- /dev/null
++++ b/tsconfig.json
+@@ -0,0 +1,38 @@
 +{
 +  "compilerOptions": {
 +    "target": "ES2020",
@@ -81,9 +93,13 @@ Subject: [PATCH] feat(core): data model, persistence, net manager, connection va
 +  "include": ["src", "tests"],
 +  "exclude": ["node_modules", "dist"]
 +}
-*** End Patch
-*** Begin Patch
-*** Add File: jest.config.js
++
+diff --git a/jest.config.js b/jest.config.js
+new file mode 100644
+index 0000000..e69de29
+--- /dev/null
++++ b/jest.config.js
+@@ -0,0 +1,14 @@
 +/** @type {import('ts-jest').JestConfigWithTsJest} */
 +module.exports = {
 +  preset: 'ts-jest',
@@ -94,16 +110,23 @@ Subject: [PATCH] feat(core): data model, persistence, net manager, connection va
 +    '^.+\\.ts$': 'ts-jest'
 +  }
 +};
-*** End Patch
-*** Begin Patch
-*** Add File: src/model/index.ts
++
+diff --git a/src/model/index.ts b/src/model/index.ts
+new file mode 100644
+index 0000000..e69de29
+--- /dev/null
++++ b/src/model/index.ts
+@@ -0,0 +1,6 @@
 +export * from './types';
 +export * from './ids';
 +export * from './schema';
 +
-*** End Patch
-*** Begin Patch
-*** Add File: src/model/ids.ts
+diff --git a/src/model/ids.ts b/src/model/ids.ts
+new file mode 100644
+index 0000000..e69de29
+--- /dev/null
++++ b/src/model/ids.ts
+@@ -0,0 +1,36 @@
 +// Small typed-id helpers
 +export type ID<T extends string> = `${T}:${string}`;
 +
@@ -125,24 +148,19 @@ Subject: [PATCH] feat(core): data model, persistence, net manager, connection va
 +export type PinId = ID<'pin'>;
 +export type NetId = ID<'net'>;
 +
-*** End Patch
-*** Begin Patch
-*** Add File: src/model/types.ts
+diff --git a/src/model/types.ts b/src/model/types.ts
+new file mode 100644
+index 0000000..e69de29
+--- /dev/null
++++ b/src/model/types.ts
+@@ -0,0 +1,186 @@
 +import { ChipId, InstanceId, WireId, PinId } from './ids';
 +
 +// Basic geometry
 +export type Point = { x: number; y: number };
 +
 +// Pin direction categories
-+export type PinDirection =
-+  | 'input'
-+  | 'output'
-+  | 'tristate'
-+  | 'addr'
-+  | 'we'
-+  | 'en'
-+  | 'clock'
-+  | 'power';
++export type PinDirection = 'input' | 'output' | 'tristate' | 'addr' | 'we' | 'en' | 'clock' | 'power';
 +
 +export type Pin = {
 +  id: PinId;
@@ -154,15 +172,7 @@ Subject: [PATCH] feat(core): data model, persistence, net manager, connection va
 +  pos: Point;
 +};
 +
-+export type PrimitiveType =
-+  | 'NAND'
-+  | 'TRISTATE'
-+  | 'RAM'
-+  | 'CLOCK'
-+  | 'CONST0'
-+  | 'IO8'
-+  | 'IO1'
-+  | 'CHIP';
++export type PrimitiveType = 'NAND' | 'TRISTATE' | 'RAM' | 'CLOCK' | 'CONST0' | 'IO8' | 'IO1' | 'CHIP';
 +
 +export type PrimitiveInstance = {
 +  id: InstanceId;
@@ -213,13 +223,16 @@ Subject: [PATCH] feat(core): data model, persistence, net manager, connection va
 +    id: ws.id,
 +    name: ws.name,
 +    instances: ws.instances.map((i) => ({ ...i, pins: i.pins.map((p) => ({ ...p })) })),
-+    wires: ws.wires.map((w) => ({ ...w, points: w.points.map((pt) => ({ ...pt })) }))
++    wires: ws.wires.map((w) => ({ ...w, points: w.points.map((pt) => ({ ...pt })) })),
 +  };
 +}
 +
-*** End Patch
-*** Begin Patch
-*** Add File: src/model/schema.ts
+diff --git a/src/model/schema.ts b/src/model/schema.ts
+new file mode 100644
+index 0000000..e69de29
+--- /dev/null
++++ b/src/model/schema.ts
+@@ -0,0 +1,70 @@
 +import { Project } from './types';
 +
 +const CURRENT_VERSION = 1;
@@ -229,9 +242,7 @@ Subject: [PATCH] feat(core): data model, persistence, net manager, connection va
 +  return JSON.stringify(payload);
 +}
 +
-+export function projectFromJSON(
-+  json: string
-+): { ok: true; project: Project } | { ok: false; err: string } {
++export function projectFromJSON(json: string): { ok: true; project: Project } | { ok: false; err: string } {
 +  try {
 +    const parsed = JSON.parse(json);
 +    if (!parsed || typeof parsed !== 'object') return { ok: false, err: 'invalid json' };
@@ -246,9 +257,12 @@ Subject: [PATCH] feat(core): data model, persistence, net manager, connection va
 +  }
 +}
 +
-*** End Patch
-*** Begin Patch
-*** Add File: src/sim/connectionValidation.ts
+diff --git a/src/sim/connectionValidation.ts b/src/sim/connectionValidation.ts
+new file mode 100644
+index 0000000..e69de29
+--- /dev/null
++++ b/src/sim/connectionValidation.ts
+@@ -0,0 +1,88 @@
 +import { Pin, PrimitiveInstance } from '../model/types';
 +
 +type ValidationResult = { ok: true } | { ok: false; reason: string };
@@ -266,7 +280,6 @@ Subject: [PATCH] feat(core): data model, persistence, net manager, connection va
 +  const isOutputA = dA === 'output';
 +  const isOutputB = dB === 'output';
 +  if (isOutputA && isOutputB) {
-+    // allow if both are tristate (i.e., direction 'tristate' would not be 'output')
 +    return { ok: false, reason: 'cannot connect two outputs' };
 +  }
 +  // output + tristate is allowed
@@ -284,9 +297,12 @@ Subject: [PATCH] feat(core): data model, persistence, net manager, connection va
 +  return undefined;
 +}
 +
-*** End Patch
-*** Begin Patch
-*** Add File: src/sim/netManager.ts
+diff --git a/src/sim/netManager.ts b/src/sim/netManager.ts
+new file mode 100644
+index 0000000..e69de29
+--- /dev/null
++++ b/src/sim/netManager.ts
+@@ -0,0 +1,160 @@
 +import { Workspace, Wire, Net, Pin, PrimitiveInstance } from '../model/types';
 +
 +// Compute nets from workspace wires and pins.
@@ -298,26 +314,30 @@ Subject: [PATCH] feat(core): data model, persistence, net manager, connection va
 +export function computeNets(workspace: Workspace): Net[] {
 +  const wires = workspace.wires;
 +  const instances = workspace.instances;
++
 +  // Build map wireId -> set of pinIds
 +  const wireToPins = new Map<string, Set<string>>();
 +  for (const w of wires) {
 +    wireToPins.set(w.id, new Set(w.pins));
 +  }
++
 +  // Union-find over wires via pins
 +  const wireIndex = new Map<string, number>();
 +  for (let i = 0; i < wires.length; i++) wireIndex.set(wires[i].id, i);
-+  const parent = new Array(wires.length).fill(0).map((_, i) => i);
++  const parent = new Array<number>(wires.length).fill(-1).map((_, i) => i);
++
 +  function find(a: number): number {
 +    if (parent[a] === a) return a;
 +    parent[a] = find(parent[a]);
 +    return parent[a];
 +  }
 +  function union(a: number, b: number) {
-+    const pa = find(a);
-+    const pb = find(b);
++    const pa = find(a),
++      pb = find(b);
 +    if (pa === pb) return;
 +    parent[pb] = pa;
 +  }
++
 +  // Map pinId -> wire indices that reference it
 +  const pinToWireIdx = new Map<string, number[]>();
 +  for (let i = 0; i < wires.length; i++) {
@@ -328,12 +348,14 @@ Subject: [PATCH] feat(core): data model, persistence, net manager, connection va
 +      pinToWireIdx.set(pid, arr);
 +    }
 +  }
++
 +  // Union wires that share pins
-+  for (const [, wireIdxs] of pinToWireIdx.entries()) {
++  for (const [pin, wireIdxs] of pinToWireIdx.entries()) {
 +    for (let i = 1; i < wireIdxs.length; i++) {
 +      union(wireIdxs[0], wireIdxs[i]);
 +    }
 +  }
++
 +  // Build groups
 +  const groups = new Map<number, { wireIds: string[]; pinIds: Set<string> }>();
 +  for (let i = 0; i < wires.length; i++) {
@@ -343,16 +365,21 @@ Subject: [PATCH] feat(core): data model, persistence, net manager, connection va
 +    for (const pid of wires[i].pins) g.pinIds.add(pid);
 +    groups.set(root, g);
 +  }
++
++  // Add any pins that are connected but whose wires may not have been created (rare)
++  // For this first pass we assume wires enumerate attached pins fully.
++
 +  // Create nets
 +  const nets: Net[] = [];
 +  let counter = 0;
 +  for (const g of groups.values()) {
 +    nets.push({
 +      id: `net:${counter++}`,
-+      wireIds: g.wireIds as Wire['id'][],
-+      pinIds: Array.from(g.pinIds) as Pin['id'][]
++      wireIds: g.wireIds,
++      pinIds: Array.from(g.pinIds),
 +    });
 +  }
++
 +  // Also include isolated pins (pins attached to no wire) as single-pin nets
 +  const allPinIds = new Set<string>();
 +  for (const inst of instances) for (const p of inst.pins) allPinIds.add(p.id);
@@ -363,6 +390,7 @@ Subject: [PATCH] feat(core): data model, persistence, net manager, connection va
 +      nets.push({ id: `net:${counter++}`, wireIds: [], pinIds: [pid] });
 +    }
 +  }
++
 +  return nets;
 +}
 +
@@ -377,9 +405,12 @@ Subject: [PATCH] feat(core): data model, persistence, net manager, connection va
 +  return m;
 +}
 +
-*** End Patch
-*** Begin Patch
-*** Add File: src/persistence/projectIO.ts
+diff --git a/src/persistence/projectIO.ts b/src/persistence/projectIO.ts
+new file mode 100644
+index 0000000..e69de29
+--- /dev/null
++++ b/src/persistence/projectIO.ts
+@@ -0,0 +1,72 @@
 +import { Project } from '../model/types';
 +import { projectFromJSON, projectToJSON } from '../model/schema';
 +
@@ -401,19 +432,15 @@ Subject: [PATCH] feat(core): data model, persistence, net manager, connection va
 +  document.body.appendChild(a);
 +  a.click();
 +  a.remove();
-+  URL.revokeObjectURL(url); 
-+}
-
-*** End Patch
-*** Begin Patch
-*** Add File: src/persistence/projectIO.ts (continued)
-+  a.remove();
 +  URL.revokeObjectURL(url);
 +}
 +
-*** End Patch
-*** Begin Patch
-*** Add File: tests/sim/netManager.test.ts
+diff --git a/tests/sim/netManager.test.ts b/tests/sim/netManager.test.ts
+new file mode 100644
+index 0000000..e69de29
+--- /dev/null
++++ b/tests/sim/netManager.test.ts
+@@ -0,0 +1,60 @@
 +import { computeNets, pinToNetMap } from '../../src/sim/netManager';
 +import { Workspace } from '../../src/model/types';
 +import { makeId } from '../../src/model/ids';
@@ -425,6 +452,7 @@ Subject: [PATCH] feat(core): data model, persistence, net manager, connection va
 +  const i1 = makeId('inst');
 +  const w1 = makeId('wire');
 +  const w2 = makeId('wire');
++
 +  const ws: Workspace = {
 +    id: 'w:1',
 +    name: 'test',
@@ -435,15 +463,16 @@ Subject: [PATCH] feat(core): data model, persistence, net manager, connection va
 +        pos: { x: 0, y: 0 },
 +        pins: [
 +          { id: p1, direction: 'output', index: 0, pos: { x: 0, y: 0 } },
-+          { id: p2, direction: 'input', index: 1, pos: { x: 1, y: 0 } }
-+        ]
-+      }
++          { id: p2, direction: 'input', index: 1, pos: { x: 1, y: 0 } },
++        ],
++      },
 +    ],
 +    wires: [
 +      { id: w1, points: [{ x: 0, y: 0 }, { x: 10, y: 0 }], pins: [p1, p2] },
-+      { id: w2, points: [{ x: 10, y: 0 }, { x: 20, y: 0 }], pins: [p2, p3] }
-+    ]
++      { id: w2, points: [{ x: 10, y: 0 }, { x: 20, y: 0 }], pins: [p2, p3] },
++    ],
 +  };
++
 +  const nets = computeNets(ws);
 +  expect(nets.length).toBeGreaterThanOrEqual(1);
 +  const map = pinToNetMap(nets);
@@ -451,9 +480,12 @@ Subject: [PATCH] feat(core): data model, persistence, net manager, connection va
 +  expect(map.get(p2)).toEqual(map.get(p3));
 +});
 +
-*** End Patch
-*** Begin Patch
-*** Add File: tests/sim/connectionValidation.test.ts
+diff --git a/tests/sim/connectionValidation.test.ts b/tests/sim/connectionValidation.test.ts
+new file mode 100644
+index 0000000..e69de29
+--- /dev/null
++++ b/tests/sim/connectionValidation.test.ts
+@@ -0,0 +1,48 @@
 +import { validateConnection, findPinById } from '../../src/sim/connectionValidation';
 +import { makeId } from '../../src/model/ids';
 +
@@ -471,9 +503,12 @@ Subject: [PATCH] feat(core): data model, persistence, net manager, connection va
 +  expect(r.ok).toBe(true);
 +});
 +
-*** End Patch
-*** Begin Patch
-*** Add File: tests/model/schema.test.ts
+diff --git a/tests/model/schema.test.ts b/tests/model/schema.test.ts
+new file mode 100644
+index 0000000..e69de29
+--- /dev/null
++++ b/tests/model/schema.test.ts
+@@ -0,0 +1,44 @@
 +import { projectToJSON, projectFromJSON } from '../../src/model/schema';
 +
 +test('project json roundtrip', () => {
@@ -486,13 +521,14 @@ Subject: [PATCH] feat(core): data model, persistence, net manager, connection va
 +        id: 'w1',
 +        name: 'wk',
 +        instances: [],
-+        wires: []
-+      }
-+    }
++        wires: [],
++      },
++    },
 +  };
 +  const s = JSON.stringify(p);
 +  const out = projectFromJSON(s);
 +  expect(out.ok).toBe(true);
 +});
 +
-*** End Patch
+-- 
+2.40.1
