@@ -1,0 +1,534 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: nand-assistant <noreply@example.com>
+Date: Tue, 05 May 2026 00:00:00 +0000
+Subject: [PATCH] feat(core): data model, persistence, net manager, connection
+ validation, tests
+
+---
+ .gitignore                                   | 6 ++++++
+ package.json                                 | 33 +++++++++++++++++++++++++++++++++
+ tsconfig.json                                | 38 +++++++++++++++++++++++++++++++++++++
+ jest.config.js                               | 14 ++++++++++
+ src/model/index.ts                           | 3 +++
+ src/model/ids.ts                              | 36 +++++++++++++++++++++++++++++++++
+ src/model/types.ts                             | 186 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ src/model/schema.ts                            | 70 ++++++++++++++++++++++++++
+ src/sim/connectionValidation.ts                | 88 +++++++++++++++++++++++++++++++++
+ src/sim/netManager.ts                          | 160 +++++++++++++++++++++++++++++++++++++++++++++++++
+ src/persistence/projectIO.ts                   | 72 ++++++++++++++++++++++++++
+ src/tests/sim/netManager.test.ts                   | 60 ++++++++++++++
+ src/tests/sim/connectionValidation.test.ts         | 48 +++++++++++
+ src/tests/model/schema.test.ts                     | 44 ++++++++++
+ 16 files changed, 858 insertions(+)
+ create mode 100644 .gitignore
+ create mode 100644 package.json
+ create mode 100644 tsconfig.json
+ create mode 100644 jest.config.js
+ create mode 100644 src/model/index.ts
+ create mode 100644 src/model/ids.ts
+ create mode 100644 src/model/types.ts
+ create mode 100644 src/model/schema.ts
+ create mode 100644 src/sim/connectionValidation.ts
+ create mode 100644 src/sim/netManager.ts
+ create mode 100644 src/persistence/projectIO.ts
+ create mode 100644 src/tests/sim/netManager.test.ts
+ create mode 100644 src/tests/sim/connectionValidation.test.ts
+ create mode 100644 src/tests/model/schema.test.ts
+---
+diff --git a/.gitignore b/.gitignore
+new file mode 100644
+index 0000000..e69de29
+--- /dev/null
++++ b/.gitignore
+@@ -0,0 +1,6 @@
++node_modules/
++dist/
++*.patch
++coverage/
++.env
++
+diff --git a/package.json b/package.json
+new file mode 100644
+index 0000000..e69de29
+--- /dev/null
++++ b/package.json
+@@ -0,0 +1,18 @@
++{
++  "name": "nandlogicstudio",
++  "version": "0.1.0",
++  "private": true,
++  "scripts": {
++    "test": "jest"
++  },
++  "devDependencies": {
++    "@types/jest": "^29.0.0",
++    "jest": "^29.0.0",
++    "ts-jest": "^29.0.0",
++    "typescript": "^5.0.0"
++  },
++  "engines": {
++    "node": ">=16"
++  }
++}
++
+diff --git a/tsconfig.json b/tsconfig.json
+new file mode 100644
+index 0000000..e69de29
+--- /dev/null
++++ b/tsconfig.json
+@@ -0,0 +1,17 @@
++{
++  "compilerOptions": {
++    "target": "ES2020",
++    "module": "commonjs",
++    "lib": ["ES2020", "DOM"],
++    "strict": true,
++    "esModuleInterop": true,
++    "skipLibCheck": true,
++    "forceConsistentCasingInFileNames": true,
++    "outDir": "dist",
++    "rootDir": "src",
++    "resolveJsonModule": true
++  },
++  "include": ["src", "tests"],
++  "exclude": ["node_modules", "dist"]
++}
++
+diff --git a/jest.config.js b/jest.config.js
+new file mode 100644
+index 0000000..e69de29
+--- /dev/null
++++ b/jest.config.js
+@@ -0,0 +1,11 @@
++/** @type {import('ts-jest').JestConfigWithTsJest} */
++module.exports = {
++  preset: 'ts-jest',
++  testEnvironment: 'node',
++  roots: ['<rootDir>/src', '<rootDir>/tests'],
++  moduleFileExtensions: ['ts', 'js', 'json'],
++  transform: {
++    '^.+\\.ts$': 'ts-jest'
++  }
++};
++
+diff --git a/src/model/index.ts b/src/model/index.ts
+new file mode 100644
+index 0000000..e69de29
+--- /dev/null
++++ b/src/model/index.ts
+@@ -0,0 +1,4 @@
++export * from './types';
++export * from './ids';
++export * from './schema';
++
+diff --git a/src/model/ids.ts b/src/model/ids.ts
+new file mode 100644
+index 0000000..e69de29
+--- /dev/null
++++ b/src/model/ids.ts
+@@ -0,0 +1,21 @@
++// Small typed-id helpers
++export type ID<T extends string> = `${T}:${string}`;
++
++function randomHex(len = 8) {
++  let s = '';
++  const hex = '0123456789abcdef';
++  for (let i = 0; i < len; i++) s += hex[Math.floor(Math.random() * 16)];
++  return s;
++}
++
++export function makeId<T extends string>(prefix: T): ID<T> {
++  return `${prefix}:${Date.now().toString(36)}${randomHex(6)}` as ID<T>;
++}
++
++// Common typed ids
++export type ChipId = ID<'chip'>;
++export type InstanceId = ID<'inst'>;
++export type WireId = ID<'wire'>;
++export type PinId = ID<'pin'>;
++export type NetId = ID<'net'>;
++
+diff --git a/src/model/types.ts b/src/model/types.ts
+new file mode 100644
+index 0000000..e69de29
+--- /dev/null
++++ b/src/model/types.ts
+@@ -0,0 +1,73 @@
++import { ChipId, InstanceId, WireId, PinId } from './ids';
++
++// Basic geometry
++export type Point = { x: number; y: number };
++
++// Pin direction categories
++export type PinDirection = 'input' | 'output' | 'tristate' | 'addr' | 'we' | 'en' | 'clock' | 'power';
++
++export type Pin = {
++  id: PinId;
++  name?: string;
++  direction: PinDirection;
++  // Instance-local pin index (0-based)
++  index: number;
++  // For layout
++  pos: Point;
++};
++
++export type PrimitiveType = 'NAND' | 'TRISTATE' | 'RAM' | 'CLOCK' | 'CONST0' | 'IO8' | 'IO1' | 'CHIP';
++
++export type PrimitiveInstance = {
++  id: InstanceId;
++  type: PrimitiveType | ChipId;
++  name?: string;
++  pos: Point;
++  pins: Pin[];
++  // metadata for primitives (e.g., RAM address pin count)
++  meta?: Record<string, unknown>;
++};
++
++export type Wire = {
++  id: WireId;
++  points: Point[]; // waypoints; endpoints connect to pin positions
++  // attached pins (0..n). pins array ordered
++  pins: PinId[];
++};
++
++export type Net = {
++  id: string;
++  wireIds: WireId[];
++  pinIds: PinId[];
++};
++
++export type Workspace = {
++  id: string;
++  name?: string;
++  instances: PrimitiveInstance[];
++  wires: Wire[];
++};
++
++export type Chip = {
++  id: ChipId;
++  name: string;
++  workspace: Workspace; // snapshot of the chip internals
++  createdAt: number;
++};
++
++export type Project = {
++  version: number;
++  chips: Chip[];
++  workspace: Workspace;
++};
++
++// Serialization helper minimal interface
++export function shallowCloneWorkspace(ws: Workspace): Workspace {
++  return {
++    id: ws.id,
++    name: ws.name,
++    instances: ws.instances.map((i) => ({ ...i, pins: i.pins.map((p) => ({ ...p })) })),
++    wires: ws.wires.map((w) => ({ ...w, points: w.points.map((pt) => ({ ...pt })) })),
++  };
++}
++
+diff --git a/src/model/schema.ts b/src/model/schema.ts
+new file mode 100644
+index 0000000..e69de29
+--- /dev/null
++++ b/src/model/schema.ts
+@@ -0,0 +1,24 @@
++import { Project } from './types';
++
++const CURRENT_VERSION = 1;
++
++export function projectToJSON(project: Project): string {
++  const payload = { version: CURRENT_VERSION, project };
++  return JSON.stringify(payload);
++}
++
++export function projectFromJSON(json: string): { ok: true; project: Project } | { ok: false; err: string } {
++  try {
++    const parsed = JSON.parse(json);
++    if (!parsed || typeof parsed !== 'object') return { ok: false, err: 'invalid json' };
++    if (parsed.version !== CURRENT_VERSION) return { ok: false, err: 'unsupported version' };
++    if (!parsed.project) return { ok: false, err: 'no project payload' };
++    // Minimal runtime validation
++    const p = parsed.project as Project;
++    if (!p.workspace) return { ok: false, err: 'missing workspace' };
++    return { ok: true, project: p };
++  } catch (e) {
++    return { ok: false, err: (e as Error).message };
++  }
++}
++
+diff --git a/src/sim/connectionValidation.ts b/src/sim/connectionValidation.ts
+new file mode 100644
+index 0000000..e69de29
+--- /dev/null
++++ b/src/sim/connectionValidation.ts
+@@ -0,0 +1,34 @@
++import { Pin, PrimitiveInstance } from '../model/types';
++
++type ValidationResult = { ok: true } | { ok: false; reason: string };
++
++// Determine if a connection between two pins is allowed.
++// Rules:
++// - connecting two outputs is an error unless both are tristate pins.
++// - other combos are allowed.
++export function validateConnection(pinA: Pin | undefined, pinB: Pin | undefined): ValidationResult {
++  if (!pinA || !pinB) return { ok: false, reason: 'missing pin' };
++  // normalize direction
++  const dA = pinA.direction;
++  const dB = pinB.direction;
++  // if both are outputs
++  const isOutputA = dA === 'output';
++  const isOutputB = dB === 'output';
++  if (isOutputA && isOutputB) {
++    return { ok: false, reason: 'cannot connect two outputs' };
++  }
++  // output + tristate is allowed
++  // tristate + tristate allowed
++  return { ok: true };
++}
++
++// Helper to find pin by id from instance list
++export function findPinById(instances: PrimitiveInstance[], pinId: string): Pin | undefined {
++  for (const inst of instances) {
++    for (const p of inst.pins) {
++      if (p.id === pinId) return p;
++    }
++  }
++  return undefined;
++}
++
+diff --git a/src/sim/netManager.ts b/src/sim/netManager.ts
+new file mode 100644
+index 0000000..e69de29
+--- /dev/null
++++ b/src/sim/netManager.ts
+@@ -0,0 +1,102 @@
++import { Workspace, Wire, Net, Pin, PrimitiveInstance } from '../model/types';
++
++// Compute nets from workspace wires and pins.
++// Simple algorithm:
++// - Each wire belongs to a net. Wires that share a pin or intersect at a pin combine into a net.
++// - For now, we only consider explicit pin attachments: wires list pins connected to them.
++// - A net is group of wires and pins that are transitively connected via shared pins.
++
++export function computeNets(workspace: Workspace): Net[] {
++  const wires = workspace.wires;
++  const instances = workspace.instances;
++
++  // Build map wireId -> set of pinIds
++  const wireToPins = new Map<string, Set<string>>();
++  for (const w of wires) {
++    wireToPins.set(w.id, new Set(w.pins));
++  }
++
++  // Union-find over wires via pins
++  const wireIndex = new Map<string, number>();
++  for (let i = 0; i < wires.length; i++) wireIndex.set(wires[i].id, i);
++  const parent = new Array<number>(wires.length).fill(-1).map((_, i) => i);
++
++  function find(a: number): number {
++    if (parent[a] === a) return a;
++    parent[a] = find(parent[a]);
++    return parent[a];
++  }
++  function union(a: number, b: number) {
++    const pa = find(a),
++      pb = find(b);
++    if (pa === pb) return;
++    parent[pb] = pa;
++  }
++
++  // Map pinId -> wire indices that reference it
++  const pinToWireIdx = new Map<string, number[]>();
++  for (let i = 0; i < wires.length; i++) {
++    const w = wires[i];
++    for (const pid of w.pins) {
++      const arr = pinToWireIdx.get(pid) || [];
++      arr.push(i);
++      pinToWireIdx.set(pid, arr);
++    }
++  }
++
++  // Union wires that share pins
++  for (const [pin, wireIdxs] of pinToWireIdx.entries()) {
++    for (let i = 1; i < wireIdxs.length; i++) {
++      union(wireIdxs[0], wireIdxs[i]);
++    }
++  }
++
++  // Build groups
++  const groups = new Map<number, { wireIds: string[]; pinIds: Set<string> }>();
++  for (let i = 0; i < wires.length; i++) {
++    const root = find(i);
++    const g = groups.get(root) || { wireIds: [], pinIds: new Set<string>() };
++    g.wireIds.push(wires[i].id);
++    for (const pid of wires[i].pins) g.pinIds.add(pid);
++    groups.set(root, g);
++  }
++
++  // Add any pins that are connected but whose wires may not have been created (rare)
++  // For this first pass we assume wires enumerate attached pins fully.
++
++  // Create nets
++  const nets: Net[] = [];
++  let counter = 0;
++  for (const g of groups.values()) {
++    nets.push({
++      id: `net:${counter++}`,
++      wireIds: g.wireIds,
++      pinIds: Array.from(g.pinIds),
++    });
++  }
++
++  // Also include isolated pins (pins attached to no wire) as single-pin nets
++  const allPinIds = new Set<string>();
++  for (const inst of instances) for (const p of inst.pins) allPinIds.add(p.id);
++  const referencedPins = new Set<string>();
++  for (const n of nets) for (const p of n.pinIds) referencedPins.add(p);
++  for (const pid of allPinIds) {
++    if (!referencedPins.has(pid)) {
++      nets.push({ id: `net:${counter++}`, wireIds: [], pinIds: [pid] });
++    }
++  }
++
++  return nets;
++}
++
++// Helper: map pinId -> netId
++export function pinToNetMap(nets: Net[]): Map<string, string> {
++  const m = new Map<string, string>();
++  for (const n of nets) {
++    for (const pid of n.pinIds) {
++      m.set(pid, n.id);
++    }
++  }
++  return m;
++}
++
+diff --git a/src/persistence/projectIO.ts b/src/persistence/projectIO.ts
+new file mode 100644
+index 0000000..e69de29
+--- /dev/null
++++ b/src/persistence/projectIO.ts
+@@ -0,0 +1,24 @@
++import { Project } from '../model/types';
++import { projectFromJSON, projectToJSON } from '../model/schema';
++
++export function exportProject(project: Project): string {
++  return projectToJSON(project);
++}
++
++export function importProject(json: string): { ok: true; project: Project } | { ok: false; err: string } {
++  return projectFromJSON(json);
++}
++
++// Helper to download a project as a file (for UI usage)
++export function downloadProjectFile(project: Project, filename = 'project.json') {
++  const blob = new Blob([exportProject(project)], { type: 'application/json' });
++  const url = URL.createObjectURL(blob);
++  const a = document.createElement('a');
++  a.href = url;
++  a.download = filename;
++  document.body.appendChild(a);
++  a.click();
++  a.remove();
++  URL.revokeObjectURL(url);
++}
++
+diff --git a/src/tests/sim/netManager.test.ts b/src/tests/sim/netManager.test.ts
+new file mode 100644
+index 0000000..e69de29
+--- /dev/null
++++ b/src/tests/sim/netManager.test.ts
+@@ -0,0 +1,39 @@
++import { computeNets, pinToNetMap } from '../../src/sim/netManager';
++import { Workspace } from '../../src/model/types';
++import { makeId } from '../../src/model/ids';
++
++test('compute nets groups wires sharing pins', () => {
++  const p1 = makeId('pin');
++  const p2 = makeId('pin');
++  const p3 = makeId('pin');
++  const i1 = makeId('inst');
++  const w1 = makeId('wire');
++  const w2 = makeId('wire');
++
++  const ws: Workspace = {
++    id: 'w:1',
++    name: 'test',
++    instances: [
++      {
++        id: i1,
++        type: 'NAND',
++        pos: { x: 0, y: 0 },
++        pins: [
++          { id: p1, direction: 'output', index: 0, pos: { x: 0, y: 0 } },
++          { id: p2, direction: 'input', index: 1, pos: { x: 1, y: 0 } },
++        ],
++      },
++    ],
++    wires: [
++      { id: w1, points: [{ x: 0, y: 0 }, { x: 10, y: 0 }], pins: [p1, p2] },
++      { id: w2, points: [{ x: 10, y: 0 }, { x: 20, y: 0 }], pins: [p2, p3] },
++    ],
++  };
++
++  const nets = computeNets(ws);
++  expect(nets.length).toBeGreaterThanOrEqual(1);
++  const map = pinToNetMap(nets);
++  expect(map.get(p1)).toEqual(map.get(p2));
++  expect(map.get(p2)).toEqual(map.get(p3));
++});
++
+diff --git a/src/tests/sim/connectionValidation.test.ts b/src/tests/sim/connectionValidation.test.ts
+new file mode 100644
+index 0000000..e69de29
+--- /dev/null
++++ b/src/tests/sim/connectionValidation.test.ts
+@@ -0,0 +1,17 @@
++import { validateConnection, findPinById } from '../../src/sim/connectionValidation';
++import { makeId } from '../../src/model/ids';
++
++test('reject output-output connection', () => {
++  const pinA = { id: makeId('pin'), direction: 'output' as const, index: 0, pos: { x: 0, y: 0 } };
++  const pinB = { id: makeId('pin'), direction: 'output' as const, index: 0, pos: { x: 1, y: 0 } };
++  const r = validateConnection(pinA, pinB);
++  expect(r.ok).toBe(false);
++});
++
++test('allow output-tristate connection', () => {
++  const pinA = { id: makeId('pin'), direction: 'output' as const, index: 0, pos: { x: 0, y: 0 } };
++  const pinB = { id: makeId('pin'), direction: 'tristate' as const, index: 0, pos: { x: 1, y: 0 } };
++  const r = validateConnection(pinA, pinB);
++  expect(r.ok).toBe(true);
++});
++
+diff --git a/src/tests/model/schema.test.ts b/src/tests/model/schema.test.ts
+new file mode 100644
+index 0000000..e69de29
+--- /dev/null
++++ b/src/tests/model/schema.test.ts
+@@ -0,0 +1,20 @@
++import { projectToJSON, projectFromJSON } from '../../src/model/schema';
++
++test('project json roundtrip', () => {
++  const p = {
++    version: 1,
++    project: {
++      version: 1,
++      chips: [],
++      workspace: {
++        id: 'w1',
++        name: 'wk',
++        instances: [],
++        wires: [],
++      },
++    },
++  };
++  const s = JSON.stringify(p);
++  const out = projectFromJSON(s);
++  expect(out.ok).toBe(true);
++});
++
+-- 
+2.40.1
