@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Automation</title>
+    <link rel="stylesheet" type="text/css" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <script src="utility.js"></script>
+    <div class="container-wrapper">
+        <!-- Insertion Point -->
+<div class="tabs">
+<button class="tab-link active" onclick="openTab(event, 'main')">main</button>
+<button class="tab-link" onclick="openTab(event, 'lighting')">lighting</button>
+<button class="tab-link" onclick="openTab(event, 'environment')">environment</button>
+<button class="tab-link" onclick="openTab(event, 'springfield')">springfield</button></div>
+<div id="main" class="tab-content active">  <div class="container">
+      <h1>Scenes</h1>
+      <div class="light-control-group">
+          <div class="light-control">
+              <button id="sequence/houselights/day">Daytime</button>
+              <button id="sequence/houselights/evening">Evening</button>
+              <button id="sequence/houselights/night">Night</button>
+          </div>
+      </div>
+  </div>
+    <div class="container">
+        <h1>Irrigation</h1>
+        <div class="light-control-group">
+            <div class="light-control">
+                <button id="water/valve/2/on">Garden Valve ON</button>
+                <button id="water/valve/2/off">Garden Valve OFF</button>
+            </div>
+            <div class="status-container">
+            <div id="water/valve/2state" class="status">unknown</div>&nbsp
+                <img class="statusimage" src="" alt="Status Image">
+            </div>
+        </div>
+    </div>
+    <script>
+        function water_valve_2(data) {
+            // Find the specific div with id "water/valve/2state"
+            const divElement = document.getElementById('water/valve/2state');
+            // Find the child img element within the div
+            const imgElement = divElement.nextElementSibling;
+            // Update status text
+            divElement.textContent = data.state;
+            // Update image source
+            const imageUrl = data.state === 'off' ? 'wateroff.png' : 'wateron.png';
+            //console.log("imageUrl:"+imageUrl);
+            imgElement.src = imageUrl;
+            //console.log("imgElement.src:"+imgElement.src);
+        }
+
+    </script>
+    <div class="container">
+        <h1>Screen</h1>
+        <div class="light-control-group">
+            <div class="light-control">
+                <button id="screen/power/on">Screen ON</button>
+                <button id="screen/power/off">Screen OFF</button>
+            </div>
+            <div class="status-container">
+            <div id="screen/powerstate" class="status">unknown</div>&nbsp
+                <img class="statusimage" src="" alt="Status Image">
+            </div>
+        </div>
+    </div>
+    <script>
+        function screen_power(data) {
+            // Find the specific div with id "screen/powerstate"
+            const divElement = document.getElementById('screen/powerstate');
+            // Find the child img element within the div
+            const imgElement = divElement.nextElementSibling;
+            // Update status text
+            divElement.textContent = data.state;
+            // Update image source
+            const imageUrl = data.state === 'off' ? 'screenoff.png' : 'screenon.png';
+            //console.log("imageUrl:"+imageUrl);
+            imgElement.src = imageUrl;
+            //console.log("imgElement.src:"+imgElement.src);
+        }
+
+    </script>
+<div class="container">
+    <h1>Temperature</h1>
+        <div id="environment/temperature/alder" class="status">
+            <div id="legend" style="margin-bottom: -5px;"></div>
+            <canvas id="canvas"></canvas>
+        </div>
+
+<script>
+    function environment_temperature_alder(jsonData) {
+        // Get our graph related document nodes
+        const container = document.querySelector('#environment\\/temperature\\/alder').parentNode;
+        const canvas = document.querySelector('#environment\\/temperature\\/alder canvas');
+        const legend = document.querySelector('#environment\\/temperature\\/alder #legend');
+        
+        // Get ranges for scales
+        const minMaxValues = findMinMax(jsonData);
+        
+        const HORIZONTALGRIDLINES = 3;
+
+        // Tweak range to fit integers on HORIZONTALGRIDLINES horizontal grid lines
+        let leftmin = minMaxValues['temperature'].min;
+        let leftmax = minMaxValues['temperature'].max;
+        let rightmin = minMaxValues['humidity'].min;
+        let rightmax = minMaxValues['humidity'].max;
+        [leftmin, leftmax] = adjustMinMax(leftmin, leftmax, HORIZONTALGRIDLINES);
+        [rightmin, rightmax] = adjustMinMax(rightmin, rightmax, HORIZONTALGRIDLINES);
+
+        // Calculate average temperature in Fahrenheit
+        const totalTemperature = jsonData.temperature
+            .map(value => parseFloat(value)) // Convert each value to a float
+            .reduce((sum, value) => sum + value, 0);
+        const averageTemperatureF = totalTemperature / jsonData.temperature.length;
+        const totalHumidity = jsonData.humidity
+            .map(value => parseFloat(value)) // Convert each value to a float
+            .reduce((sum, value) => sum + value, 0);
+        const averageHumidity = totalHumidity / jsonData.humidity.length;
+        
+        // Draw grid and labels
+        gridPosition = drawGrid(container, canvas, jsonData, leftmin, leftmax, rightmin, rightmax, HORIZONTALGRIDLINES);
+
+        // Plot lines for each field
+        plotLine(container, canvas, legend, jsonData, 'temperature', 'red', leftmin, leftmax, gridPosition, jsonData.temperature[jsonData.temperature.length - 1]+" avg:"+averageTemperatureF.toFixed(2)+"°F"); // Temperature (red)
+        plotLine(container, canvas, legend, jsonData, 'humidity', '#307720', rightmin, rightmax, gridPosition, jsonData.humidity[jsonData.humidity.length - 1]+" avg:"+averageHumidity.toFixed(2)+"%"); // Humidity (lush green)
+    }
+</script>
+
+</div>
+
+<div class="container">
+    <div class="volume-control-container">
+        <h1>Desktop</h1>
+        <div class="dials-container">
+            <div class="dial-container" id="dialColorTempContainer" data-radius="50">
+                <img src="dial.png" alt="Dial" class="dial">
+                <img src="dialdot.png" alt="Red Dot" class="red-dot" id="redDotColorTemp">
+                <p class="dial-label">Color&nbspTemp</p>
+            </div>
+            <div class="dial-container" id="dialVolumeContainer" data-radius="50">
+                <img src="dial.png" alt="Dial" class="dial">
+                <img src="dialdot.png" alt="Red Dot" class="red-dot" id="redDotVolume">
+                <p class="dial-label">Volume</p>
+            </div>
+        </div>
+        <div class="light-control-group">
+            <div class="light-control">
+                <button id="desktop/Monitor40Red/5000">5000K</button>
+                </br>
+                <button id="desktop/Monitor40Red/3000">3000K</button>
+            </div>
+            <div class="light-control">
+                <button id="desktop/volume/up">Vol Up</button>
+                <button id="desktop/volume/down">Vol Down</button>
+                </br>
+                <button id="desktop/volume/mute">Mute</button>
+            </div>
+            <div class="status-container">
+                <div id="muteoverlay" class="muteoverlay"></div>
+                <div id="desktop/Monitor40Redstate" class="status">unknown</div>
+                &nbsp&nbsp&nbsp
+                <div id="desktop/volumestate" class="status">unknown</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+
+function desktop_volume(data) {
+    const value = data.state;
+    updateRedDotPosition(value, 0, 100, document.getElementById('dialVolumeContainer'));
+
+    const divElement = document.getElementById('desktop/volumestate');
+    const muteoverlayElement = document.getElementById('muteoverlay');
+
+    // Update status text
+    divElement.textContent = `${value}%`; // Display the value
+
+    // Show or hide the muteoverlay based on mute state
+    muteoverlayElement.classList.toggle('visible', data.mute === "true");
+}
+
+function desktop_Monitor40Red(data) {
+    const value = data.state;
+    //console.log("Monitor40Red:"+value);
+    updateRedDotPosition(value, 2000, 6000, document.getElementById('dialColorTempContainer'));
+
+    const divElement = document.getElementById('desktop/Monitor40Redstate');
+
+    // Update status text
+    divElement.textContent = `${value}K`; // Display the value
+}
+
+initDial(document.getElementById('dialVolumeContainer'), 0, 100, 5, "desktop/volume");
+initDial(document.getElementById('dialColorTempContainer'), 2000, 6000, 5, "desktop/Monitor40Red");
+
+</script>
+
+<div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>Treadmill Data</h1>
+        <div id="total-distance" style="margin-left: 20px; display: inline-block; font-size: 1.5em;">
+            <strong>Miles:</strong> <span id="total-distance-value" style="font-size: 1.7em;">unknown</span>
+        </div>
+        <div id="instantaneous-speed" style="margin-left: 20px; display: inline-block; font-size: 1.5em;">
+            <strong>Speed:</strong> <span id="instantaneous-speed-value">unknown</span>
+        </div>
+    </div>
+    <div id="ftms/treadmill" class="status">
+        <div id="legend" style="margin-bottom: -5px;"></div>
+        <canvas id="canvas"></canvas>
+    </div>
+    <div class="light-control-group">
+        <div class="light-control">
+            <button id="ftms/treadmill/start">Start</button>
+            <button id="ftms/treadmill/stop">Stop</button>
+            &nbsp
+            <div class="linear-sliders-container">
+                <div class="linear-slider-container" id="linearSpeedContainer" data-width="200">
+                    <img src="linear-horz.png" alt="Linear slider" class="linear-slider">
+                    <img src="handle-horz.png" alt="Handle" class="handle" id="handleSpeed">
+                    <p class="linear-slider-label">Speed</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function ftms_treadmill(jsonData) {
+            // Update the instantaneous speed display
+            let instantaneousSpeedValue = jsonData.instantaneousSpeed[jsonData.instantaneousSpeed.length - 1];
+            const totalDistanceValue = jsonData.totalDistance[jsonData.totalDistance.length - 1];
+            
+            document.getElementById('instantaneous-speed-value').textContent = instantaneousSpeedValue.toFixed(1);
+            document.getElementById('total-distance-value').textContent = totalDistanceValue.toFixed(2);
+            if (instantaneousSpeedValue == 0 ) {  // slider can't handle 0, 4 represents 0.
+                instantaneousSpeedValue = 0.4
+            }
+            console.log("ftms_treadmill: "+instantaneousSpeedValue.toFixed(1) * 10)
+            ftms_treadmill_speed(instantaneousSpeedValue.toFixed(1) * 10)
+            
+            // Get our graph related document nodes
+            const container = document.querySelector('#ftms\\/treadmill').parentNode;
+            const canvas = document.querySelector('#ftms\\/treadmill canvas');
+            const legend = document.querySelector('#ftms\\/treadmill #legend');
+
+            // Get ranges for scales
+            const minMaxValues = findMinMax(jsonData);
+
+            const HORIZONTALGRIDLINES = 4;
+
+            // Tweak range to fit integers on HORIZONTALGRIDLINES horizontal grid lines
+            let leftmin = minMaxValues['totalDistance'].min;
+            let leftmax = minMaxValues['totalDistance'].max;
+            let rightmin = minMaxValues['elapsedTime'].min;
+            let rightmax = minMaxValues['elapsedTime'].max;
+            [leftmin, leftmax] = adjustMinMax(leftmin, leftmax, HORIZONTALGRIDLINES);
+            [rightmin, rightmax] = adjustMinMax(rightmin, rightmax, HORIZONTALGRIDLINES);
+
+            // Draw grid and labels
+            gridPosition = drawGrid(container, canvas, jsonData, leftmin, leftmax, rightmin, rightmax, HORIZONTALGRIDLINES);
+
+            // Plot lines for each field
+            plotLine(container, canvas, legend, jsonData, 'elapsedTime', '#FF8C00', rightmin, rightmax, gridPosition, jsonData.elapsedTime[jsonData.elapsedTime.length - 1]); // Elapsed Time (orange)
+            plotLine(container, canvas, legend, jsonData, 'totalDistance', 'blue', leftmin, leftmax, gridPosition, jsonData.totalDistance[jsonData.totalDistance.length - 1]); // Total Distance (blue)
+        }
+        
+        function ftms_treadmill_speed(data) {
+            console.log("ftms_treadmill_speed: "+data)
+            updateHandlePosition(data, 4, 40, document.getElementById('linearSpeedContainer'));
+        }
+
+        initLinearslider(document.getElementById('linearSpeedContainer'), 4, 40, "ftms/treadmill");
+        ftms_treadmill_speed(4)
+    </script>
+</div>
+<div class="container">
+    <h1 id="weather-heading">Weather</h1>
+    <div id="environment/weather/lib" class="status">
+        <div id="legend" style="margin-bottom: -5px;"></div>
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <script>
+        function environment_weather_lib(jsonData) {
+            //get our graph related document nodes
+            const container = document.querySelector('#environment\\/weather\\/lib').parentNode;
+            const canvas = document.querySelector('#environment\\/weather\\/lib canvas');
+            const legend = document.querySelector('#environment\\/weather\\/lib #legend');
+            // Get ranges for scales
+            const minMaxValues = findMinMax(jsonData);
+
+            const HORIZONTALGRIDLINES = 6;
+
+            // Tweak range to fit integers on HORIZONTALGRIDLINES horizontal grid lines
+            let leftmin = Math.min(minMaxValues['apparentTemperature'].min, minMaxValues['temperature'].min);
+            let leftmax = Math.max(minMaxValues['apparentTemperature'].max, minMaxValues['temperature'].max);
+            let rightmin = Math.min(minMaxValues['humidity'].min, minMaxValues['precipitation'].min, minMaxValues['cloudcover'].min);
+            let rightmax = Math.max(minMaxValues['humidity'].max, minMaxValues['precipitation'].max, minMaxValues['cloudcover'].max);
+            [leftmin, leftmax] = adjustMinMax(leftmin, leftmax, HORIZONTALGRIDLINES);
+            [rightmin, rightmax] = adjustMinMax(rightmin, rightmax, HORIZONTALGRIDLINES);
+            if (rightmax > 100) {
+                rightmin = rightmin + 100 - rightmax;
+                rightmax = 100;
+            }
+            // Draw grid and labels
+            gridPosition = drawGrid(container, canvas, jsonData, leftmin, leftmax, rightmin, rightmax, HORIZONTALGRIDLINES);
+
+            // Plot lines for each field
+            plotLine(container, canvas, legend, jsonData, 'temperature', 'red', leftmin, leftmax, gridPosition, jsonData.temperature[0] + "°F"); // Temperature (red)
+            plotLine(container, canvas, legend, jsonData, 'apparentTemperature', '#ffa000', leftmin, leftmax, gridPosition, jsonData.apparentTemperature[0] == "null" ? jsonData.temperature[0] + "°F" : jsonData.apparentTemperature[0] + "°F", true); // Apparent temperature (alert orange)
+            plotLine(container, canvas, legend, jsonData, 'humidity', '#307720', rightmin, rightmax, gridPosition, jsonData.humidity[0] + "%"); // Humidity (lush green)
+            plotLine(container, canvas, legend, jsonData, 'precipitation', '#c0d0d0', rightmin, rightmax, gridPosition, "https://radar.weather.gov/ridge/standard/KLOT_loop.gif"); // Precipitation (rainy gray)
+            plotLine(container, canvas, legend, jsonData, 'cloudcover', '#6d98d6', rightmin, rightmax, gridPosition, "https://cdn.star.nesdis.noaa.gov/GOES16/ABI/CONUS/DayNightCloudMicroCombo/GOES16-CONUS-DayNightCloudMicroCombo-625x375.gif"); // Cloud cover (sky blue)
+            plotLine(container, canvas, legend, jsonData, 'wind', '#1010AF', 0, 50, gridPosition, jsonData.wind[0] + "mph"); // Wind (stormy blue) //note fixed scale of 0-60mph
+            plotLine(container, canvas, legend, jsonData, 'gusts', '#700070', 0, 50, gridPosition, jsonData.gusts[0] == "null" ? jsonData.wind[0] + "mph" : jsonData.gusts[0] + "mph"); // Gusts (purple) //note fixed scale of 0-50mph
+
+            // if id is not present, append "(0-50mph)" to legend
+            if (!legend.querySelector('#legend-item-0-50mph')) {
+                const legendItem = document.createElement('div');
+                legendItem.style.display = 'inline-flex'; // Display inline
+
+                // Set the id to uniquely identify the element
+                legendItem.id = 'legend-item-0-50mph';
+
+                const legendText = document.createElement('span');
+                legendText.textContent = "(0-50mph)";
+                legendItem.appendChild(legendText);
+
+                legend.appendChild(legendItem);
+            }
+        }
+
+        const weatherHeading = document.getElementById('weather-heading');
+        let currentImage = null; // Track the currently displayed image
+
+        weatherHeading.addEventListener('mousemove', function(event) {
+            const rect = weatherHeading.getBoundingClientRect();
+            const mouseX = event.clientX - rect.left;
+            const headingWidth = rect.width;
+
+            let imageUrl;
+            if (mouseX < headingWidth / 3) {
+                imageUrl = "https://www.wpc.ncep.noaa.gov/NationalForecastChart/staticmaps/noaad1.png";
+            } else if (mouseX < (headingWidth * 2) / 3) {
+                imageUrl = "https://www.wpc.ncep.noaa.gov/NationalForecastChart/staticmaps/noaad2.png";
+            } else {
+                imageUrl = "https://www.wpc.ncep.noaa.gov/NationalForecastChart/staticmaps/noaad3.png";
+            }
+
+            if (currentImage === imageUrl) {
+                return; // If the same image, don't reload
+            }
+
+            currentImage = imageUrl; // Update the current image
+
+            // Remove any existing image container
+            const existingImageContainer = weatherHeading.querySelector('.image-container');
+            if (existingImageContainer) {
+                weatherHeading.removeChild(existingImageContainer);
+            }
+
+            // Create and append the new image container
+            const imageContainer = document.createElement('div');
+            imageContainer.classList.add('image-container');
+            imageContainer.style.position = 'absolute';
+            imageContainer.style.zIndex = '1000';
+            imageContainer.style.background = 'white';
+            imageContainer.style.padding = '10px';
+            imageContainer.style.border = '1px solid #ccc';
+
+            const img = document.createElement('img');
+            img.src = imageUrl;
+
+            // Optional delay to ensure the image is loaded
+            setTimeout(() => {
+                img.style.width = '100%';
+                imageContainer.appendChild(img);
+                weatherHeading.appendChild(imageContainer);
+            }, 10); // Adjust delay as needed
+
+        });
+
+        weatherHeading.addEventListener('mouseout', function() {
+            const existingImageContainer = weatherHeading.querySelector('.image-container');
+            if (existingImageContainer) {
+                weatherHeading.removeChild(existingImageContainer);
+            }
+            currentImage = null; // Reset current image
+        });
+
+    </script>
+</div>
+<div class="container">
+  <h1>Clock</h1>
+  <div class="local-time-container">
+    <div class="local-day" id="localDay"></div>
+    <div class="local-clock" id="localClock"></div>
+    <div class="local-date" id="localDate"></div>
+  </div>
+  <div class="progress-container">
+    <div class="progress-bar" id="localProgressBar"></div>
+  </div>
+  <div class="clock-container" id="worldClocks"></div>
+</div>
+
+<style>
+.local-time-container {
+  display: flex;
+  align-items: center;
+}
+
+#localDay {
+  flex: 0 1 auto;
+  text-align: left;
+  font-size: 30px;
+}
+
+#localClock {
+  flex: 1;
+  text-align: center;
+  font-size: 50px;
+}
+
+#localDate {
+  flex: 0 1 auto;
+  text-align: right;
+  font-size: 28px;
+}
+
+.progress-container {
+  margin: 0;
+}
+</style>
+
+<script>
+function addClock(clockId, timeZone) {
+  var clockContainer = document.getElementById('worldClocks');
+  var newClock = document.createElement('div');
+  newClock.id = clockId;
+  newClock.className = 'clock-item';
+
+  clockContainer.appendChild(newClock);
+
+  var updateTime = function () {
+    var now = new Date(new Date().toLocaleString('en-US', { timeZone: timeZone }));
+    var hours = now.getHours();
+    var minutes = now.getMinutes();
+    var ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // Handle midnight (0 hours)
+    minutes = String(minutes).padStart(2, '0');
+    var clockDisplay = clockId + ' ' + hours + ':' + minutes + ' ' + ampm;
+    document.getElementById(clockId).textContent = clockDisplay;
+  };
+
+  setInterval(updateTime, 10000);
+  updateTime();
+}
+
+// Add local clock with day, time, and date
+var localDayDisplay = document.getElementById('localDay');
+var localClockDisplay = document.getElementById('localClock');
+var localDateDisplay = document.getElementById('localDate');
+var updateLocalTime = function () {
+  var now = new Date();
+  
+  // Format day
+  var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  var dayName = days[now.getDay()];
+  localDayDisplay.textContent = dayName;
+  
+  // Format date
+  var months = ['January', 'February', 'March', 'April', 'May', 'June', 
+                'July', 'August', 'September', 'October', 'November', 'December'];
+  var monthName = months[now.getMonth()];
+  var date = now.getDate();
+  var year = now.getFullYear();
+  var dateString = monthName + ' ' + date + ', ' + year;
+  localDateDisplay.textContent = dateString;
+  
+  // Format time
+  var hours = now.getHours();
+  var minutes = now.getMinutes();
+  var seconds = now.getSeconds();
+  var ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  hours = hours ? hours : 12; // Handle midnight (0 hours)
+  minutes = String(minutes).padStart(2, '0');
+  seconds = String(seconds).padStart(2, '0');
+  var localClockDisplayText = hours + ':' + minutes + ':' + seconds + ' ' + ampm;
+  localClockDisplay.textContent = localClockDisplayText;
+
+  // Update local progress bar
+  var totalMinutes = now.getHours() * 60 + now.getMinutes();
+  var percentage = (totalMinutes / 1440) * 100;
+  document.getElementById('localProgressBar').style.width = percentage + '%';
+};
+
+setInterval(updateLocalTime, 1000);
+updateLocalTime();
+
+// Add international clocks
+addClock('UTC', 'UTC');
+addClock('Beijing', 'Asia/Shanghai');
+addClock('Sydney', 'Australia/Sydney');
+addClock('Hawaii', 'Pacific/Honolulu');
+</script>
+
+</div>
+<div id="lighting" class="tab-content"><div class="container">
+    <h1>Kitchen</h1>
+
+    <div class="light-control-group">
+        <div class="light-control">
+            <button id="light/magic/cabinetlights1/ffffff">Stove Cabinet Lights ON</button> 
+            <button id="light/magic/cabinetlights1/000100">Stove Cabinet Lights OFF</button>
+        </div>
+        <div class="status-container">
+            <div id="light/magic/cabinetlights1state" class="status">unknown</div>
+            <img class="statusimage" src="" alt="Status Image">
+        </div>
+    </div>
+
+    <div class="light-control-group">
+        <div class="light-control">
+            <button id="light/magic/cabinetlights2/ffffff">Breakfast Cabinet Lights ON</button>
+            <button id="light/magic/cabinetlights2/000100">Breakfast Cabinet Lights OFF</button>
+        </div>
+        <div class="status-container">
+            <div id="light/magic/cabinetlights2state" class="status">unknown</div>
+            <img class="statusimage" src="" alt="Status Image">
+        </div>
+    </div>
+
+    <div class="light-control-group">
+        <div class="light-control">
+            <button id="light/magic/stovelight/7f7f">Stove Light ON</button>
+            <button id="light/magic/stovelight/000000">Stove Light OFF</button>
+        </div>
+        <div class="status-container">
+            <div id="light/magic/stovelightstate" class="status">unknown</div>
+            <img class="statusimage" src="" alt="Status Image">
+        </div>
+    </div>
+</div>
+
+  <div class="container">
+      <h1>Computer</h1>
+      <div class="light-control-group">
+          <div class="light-control">
+              <button id="light/magic/computerlight/7f7f">Computer Light ON</button>
+              <button id="light/magic/computerlight/000000">Computer Light OFF</button>
+          </div>
+          <div class="status-container">
+              <div id="light/magic/computerlightstate" class="status">unknown</div>
+              <img class="statusimage" src="" alt="Status Image">
+          </div>
+      </div>
+  </div>
+    <div class="container">
+        <h1>Utility</h1>
+        <div class="light-control-group">
+            <div class="light-control">
+                <button id="light/magic/utilitylight/7f7f">Utility Light ON</button>
+                <button id="light/magic/utilitylight/000000">Utility Light OFF</button>
+            </div>
+            <div class="status-container">
+                <div id="light/magic/utilitylightstate" class="status">unknown</div>
+                <img class="statusimage" src="" alt="Status Image">
+            </div>
+        </div>
+    </div>
+    <div class="container">
+        <h1>Livingroom</h1>
+        <div class="light-control-group">
+            <div class="light-control">
+                <button id="light/msgw/livingroom/1">Livingroom Light ON</button>
+                <button id="light/msgw/livingroom/0">Livingroom Light OFF</button>
+            </div>
+            <div class="status-container">
+                <div id="light/msgw/livingroomstate" class="status">unknown</div>
+                <img class="statusimage" src="" alt="Status Image">
+            </div>
+        </div>
+    </div>
+</div>
+<div id="environment" class="tab-content"></div>
+<div id="springfield" class="tab-content"><div class="container">
+    <h1>Weather</h1>
+        <div id="environment/weather/spr" class="status">
+            <div id="legend" style="margin-bottom: -5px;"></div>
+            <canvas id="canvas"></canvas>
+        </div>
+
+    <script>
+        function environment_weather_spr(jsonData) {
+            //get our graph related document nodes
+            const container = document.querySelector('#environment\\/weather\\/spr').parentNode;;
+            const canvas = document.querySelector('#environment\\/weather\\/spr canvas');
+            const legend = document.querySelector('#environment\\/weather\\/spr #legend');
+            // Get ranges for scales
+            const minMaxValues = findMinMax(jsonData);
+            
+            const HORIZONTALGRIDLINES=6
+
+            // Tweak range to fit integers on HORIZONTALGRIDLINES horizontal grid lines
+            let leftmin = Math.min(minMaxValues['apparentTemperature'].min, minMaxValues['temperature'].min);
+            let leftmax = Math.max(minMaxValues['apparentTemperature'].max, minMaxValues['temperature'].max);
+            let rightmin = Math.min(minMaxValues['humidity'].min, minMaxValues['precipitation'].min, minMaxValues['cloudcover'].min);
+            let rightmax = Math.max(minMaxValues['humidity'].max, minMaxValues['precipitation'].max, minMaxValues['cloudcover'].max);
+            [leftmin, leftmax] = adjustMinMax(leftmin, leftmax, HORIZONTALGRIDLINES);
+            [rightmin, rightmax] = adjustMinMax(rightmin, rightmax, HORIZONTALGRIDLINES);
+            if ( rightmax > 100 ) {
+                rightmin = rightmin + 100 - rightmax;
+                rightmax = 100;
+            }
+            // Draw grid and labels
+            gridPosition=drawGrid(container, canvas, jsonData, leftmin, leftmax, rightmin, rightmax, HORIZONTALGRIDLINES);
+
+            // Plot lines for each field
+            plotLine(container, canvas, legend, jsonData, 'temperature', 'red', leftmin, leftmax, gridPosition, jsonData.temperature[0]+"°F"); // Temperature (red)
+            plotLine(container, canvas, legend, jsonData, 'apparentTemperature', '#ffa000', leftmin, leftmax, gridPosition, jsonData.apparentTemperature[0] == "null" ? jsonData.temperature[0]+"°F" : jsonData.apparentTemperature[0] + "°F"); // Apparent temperature (alert orange)
+            plotLine(container, canvas, legend, jsonData, 'humidity', '#307720', rightmin, rightmax, gridPosition, jsonData.humidity[0]+"%"); // Humidity (lush green)
+            plotLine(container, canvas, legend, jsonData, 'precipitation', '#c0d0d0', rightmin, rightmax, gridPosition, "https://radar.weather.gov/ridge/standard/KILX_loop.gif"); // Precipitation (rainy gray)
+            plotLine(container, canvas, legend, jsonData, 'cloudcover', '#6d98d6', rightmin, rightmax, gridPosition, "https://cdn.star.nesdis.noaa.gov/GOES16/ABI/CONUS/DayNightCloudMicroCombo/GOES16-CONUS-DayNightCloudMicroCombo-625x375.gif"); // Cloud cover (sky blue)
+            plotLine(container, canvas, legend, jsonData, 'wind', '#1010AF', 0, 50, gridPosition, jsonData.wind[0]+"mph"); // Wind (stormy blue) //note fixed scale of 0-60mph
+            plotLine(container, canvas, legend, jsonData, 'gusts', '#700070', 0, 50, gridPosition, jsonData.gusts[0] == "null" ? jsonData.wind[0]+"mph" : jsonData.gusts[0]+"mph"); // Gusts (purple) //note fixed scale of 0-50mph
+
+            // if id is not present, append "(0-50mph)" to legend
+            if (!legend.querySelector('#legend-item-0-50mph')) {
+                const legendItem = document.createElement('div');
+                legendItem.style.display = 'inline-flex'; // Display inline
+
+                // Set the id to uniquely identify the element
+                legendItem.id = 'legend-item-0-50mph';
+
+                const legendText = document.createElement('span');
+                legendText.textContent = "(0-50mph)";
+                legendItem.appendChild(legendText);
+
+                legend.appendChild(legendItem);
+            }
+        }
+
+    </script>
+</div>
+
+</div>
+        <div id="websocketstatus" class="socketstatus">unknown</div>
+    </div>
+    <script src="ws.js"></script>
+
+</body>
+</html>
+
