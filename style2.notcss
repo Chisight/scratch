@@ -34,28 +34,15 @@ body {
 
 .tab-content {
     flex: 1 1 auto;
-    display: none;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
     gap: 10px;
-    overflow: auto;
+    overflow: hidden;
     box-sizing: border-box;
 }
 
-#websocketstatus.socketstatus {
-    flex: 0 0 auto;
-}
-
-.container {
-    padding: 5px;
-    margin-bottom: 15px; /* space below boxes */
-    background-color: #0d1117;
-    border-radius: 10px;
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
-}
-
-.container h1 {
-    text-align: left; /* Left-align all h1 titles in containers */
-    margin: 0; /* Remove default margin */
+.tab-content.active {
+    display: grid;
 }
 
 .tab-container {
@@ -66,6 +53,25 @@ body {
     border-radius: 8px;*/
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
+
+#websocketstatus.socketstatus {
+    flex: 0 0 auto;
+}
+
+.container {
+    padding: 5px;
+    margin-bottom: 15px;
+    background-color: #0d1117;
+    border-radius: 10px;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+}
+
+.container h1 {
+    text-align: left; /* Left-align all h1 titles in containers */
+    margin: 0; /* Remove default margin */
+}
+
 
 .tab-link {
     border: none;
@@ -88,10 +94,6 @@ body {
     border-bottom: 2px solid #233686;
     color: #f0f6fc;
     font-weight: bold;
-}
-
-.tab-content.active {
-    display: block;
 }
 
 h1 {
@@ -280,5 +282,4 @@ button:hover {
     text-align: center;
     margin-top: 5px;
 }
-
 
